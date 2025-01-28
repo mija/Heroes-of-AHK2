@@ -125,7 +125,6 @@ BowChargeDelay.OnEvent("Change", UpdateDelayText)
 ; Gui size and location
 G.Show("w190")
 ; G.Move(-1590, 850)
-OnMessage(0x0200, On_WM_MOUSEMOVE)
 
 ; Death on Close
 G.OnEvent("Close", GuiClose)
