@@ -35,7 +35,7 @@ XButton1::ToggleSkill2Status()
 F::ToggleSkill3Status()
 #HotIf
 
-#HotIf (Toggle1Active || Toggle2Active || Toggle3Active && WinActive("ahk_class SDL_app"))
+#HotIf (Toggle1Active || Toggle2Active || Toggle3Active && WinActive("ahk_class SDL_app") && !Weapon2Active)
 ~Escape::ResetToggles()
 ~C::ResetToggles()
 ~I::ResetToggles()
@@ -228,6 +228,30 @@ ResetToggles() {
     }
 }
 
+ToggleWeapon2Status() {
+    global Weapon2Status, inProgressW2
+    Weapon2Status := !Weapon2Status
+    inProgressW2 := 0
+}
+
+ResetWeapon2Status() {
+    global Weapon2Status, inProgressW2, Skill1Status, Skill2Status, Skill3Status
+    Weapon2Status := 0
+    inProgressW2 := 0
+    if (Skill1Status) {
+        Send "{1 Up}"
+        Skill1Status := false
+    }
+    if (Skill2Status) {
+        Send "{2 Up}"
+        Skill2Status := false
+    }
+    if (Skill3Status) {
+        Send "{3 Up}"
+        Skill3Status := false
+    }
+}
+
 Skill1ToggleFunction(ctrl, eventInfo) {
     global Toggle1Active
     Toggle1Active := ctrl.Value
@@ -282,18 +306,6 @@ BowSpamLoop() {
             Sleep 20
         }
     }
-}
-
-ToggleWeapon2Status() {
-    global Weapon2Status, inProgressW2
-    Weapon2Status := !Weapon2Status
-    inProgressW2 := 0
-}
-
-ResetWeapon2Status() {
-    global Weapon2Status, inProgressW2
-    Weapon2Status := 0
-    inProgressW2 := 0
 }
 
 Weapon2Loop() {
