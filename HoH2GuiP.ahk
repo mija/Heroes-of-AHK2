@@ -1,4 +1,4 @@
-﻿#SingleInstance
+#SingleInstance
 #Requires AutoHotkey >=2.0
 InstallMouseHook True
 
@@ -10,35 +10,65 @@ GuiClose(GuiObj) {
 ; UpDown properties
 UpDown_fIncrement := 5
 UpDown_ePos       := 100
-UpDown_fPos       := 120
+UpDown_fPos       := 110
 
 ; Keybinds
-#HotIf (Weapon2Active && WinActive("ahk_class SDL_app"))
+#HotIf (Weapon2Active != 0 && WinActive("ahk_class SDL_app"))
 ~Escape::ResetWeapon2Status()
 ~C::ResetWeapon2Status()
 ~I::ResetWeapon2Status()
 ~RButton::ToggleWeapon2Status()
 #HotIf
 
-#HotIf (Toggle1Active && WinActive("ahk_class SDL_app"))
+#HotIf (Toggle1Active != 0 && WinActive("ahk_class SDL_app"))
 1::ToggleSkill1Status()
 XButton2::ToggleSkill1Status()
 #HotIf
 
-#HotIf (Toggle2Active && WinActive("ahk_class SDL_app"))
+#HotIf (Toggle2Active != 0 && WinActive("ahk_class SDL_app"))
 2::ToggleSkill2Status()
 XButton1::ToggleSkill2Status()
 #HotIf
 
-#HotIf (Toggle3Active && WinActive("ahk_class SDL_app"))
+#HotIf (Toggle3Active != 0 && WinActive("ahk_class SDL_app"))
 3::ToggleSkill3Status()
 F::ToggleSkill3Status()
 #HotIf
 
-#HotIf (Toggle1Active || Toggle2Active || Toggle3Active && WinActive("ahk_class SDL_app") && !Weapon2Active)
+#HotIf ((Toggle1Active == 1 || Toggle2Active == 1 || Toggle3Active == 1) && WinActive("ahk_class SDL_app") && Weapon2Active != 0)
 ~Escape::ResetToggles()
 ~C::ResetToggles()
 ~I::ResetToggles()
+#HotIf
+
+#HotIf ((Toggle1Active == -1 || Toggle2Active == -1 || Toggle3Active == -1) && WinActive("ahk_class SDL_app"))
+~LButton::
+{
+    global Toggle1Active, Toggle2Active, Toggle3Active, Skill1Status, Skill2Status, Skill3Status
+    if (Toggle1Active == -1 && Skill1Status) {
+        Send "{1 Down}"
+    }
+    if (Toggle2Active == -1 && Skill2Status) {
+        Send "{2 Down}"
+    }
+    if (Toggle3Active == -1 && Skill3Status) {
+        Send "{3 Down}"
+    }
+}
+
+~LButton Up::
+{
+    global Toggle1Active, Toggle2Active, Toggle3Active, Skill1Status, Skill2Status, Skill3Status
+    if (Toggle1Active == -1 && Skill1Status) {
+        Send "{1 Up}"
+    }
+    if (Toggle2Active == -1 && Skill2Status) {
+        Send "{2 Up}"
+    }
+    if (Toggle3Active == -1 && Skill3Status) {
+        Send "{3 Up}"
+    }
+}
 #HotIf
 
 ; Globals
@@ -56,21 +86,18 @@ global Toggle2Active := false
 global Skill2Status := false
 global Toggle3Active := false
 global Skill3Status := false
-
-global PrevHwnd := 0
-global CurrControl := ""
-global TooltipMousedOver := 0
-global TooltipText := ""
-global TimerActive := false
+global Duo1HActive := false
+global inProgressDuo1H := false
 
 ; Gui creation
 G := Gui()
-G.Title := "Heroes of AHK2 by mija"
+G.Title := "Heroes of AHK2"
 G.BackColor := "f5f6ff"
 G.Opt("-MinimizeBox")
 
 ; Populate Gui
-vBowSpam := G.Add("Checkbox", "xp-6 yp+7", "Bow Spam")
+vReload := G.Add("Button", "w19 h19 xp+158 yp+3", "R")
+vBowSpam := G.Add("Checkbox", "xp-164 yp+10", "Bow Spam")
 vBowCharge := G.Add("Checkbox", "xp-0 yp+21", "Bow Charge")
 BowChargeDelay := G.Add("Edit", "w45 xp+80 yp-3 Number")
 G.Add("UpDown")
@@ -78,32 +105,37 @@ G.Add("Text", "xp+2 yp-14", " % AS")
 vBowChargeDelayText := G.Add("Text", "xp+50 yp+18", "450 ms")
 vWeapon2Symbol := G.Add("Text", "xp-62 yp+16 h17 w12", "↻")
 vWeapon2Symbol.SetFont("s13")
-vWeapon2 := G.Add("Checkbox", "xp-70 yp+4", "Weapon 2")
+vWeapon2 := G.Add("Checkbox", "xp-70 yp+4 Check3", "Weapon 2")
 vChargeCancel := G.Add("Checkbox", "xp-0 yp+21", "Charge Cancel")
 ChargeCancelDelay := G.Add("Edit", "w40 xp+92 yp-0 Number")
 G.Add("UpDown")
 G.Add("Text", "xp+0 yp-14", "ms delay")
 vChargeCancelKey := G.Add("DropDownList", "xp+44 yp+14 w45", ["1", "2", "3"])
 G.Add("Text", "xp+9 yp-14", "ability")
-vSkill1 := G.Add("Checkbox", "xp-145 yp+35", "Skill 1 Toggle")
-vSkill2 := G.Add("Checkbox", "xp-0 yp+21", "Skill 2 Toggle")
-vSkill3 := G.Add("Checkbox", "xp-0 yp+21", "Skill 3 Toggle")
-vReload := G.Add("Button", "w60 xp+104 yp-30", "Reload`nScript")
+vSkill1 := G.Add("Checkbox", "xp-145 yp+35 Check3", "Skill 1 Toggle")
+vSkill2 := G.Add("Checkbox", "xp-0 yp+21 Check3", "Skill 2 Toggle")
+vSkill3 := G.Add("Checkbox", "xp-0 yp+21 Check3", "Skill 3 Toggle")
+vDuo1H := G.Add("Checkbox", "xp+92 yp-30 Check3", "Dual 1h Spam")
+vSiggy := G.Add("Text", "xp+8 yp+22", "  1110 is factually`nthe greatest number")
+vSiggy.SetFont("s6")
 
 ; Assign tooltips to controls
-vBowSpam.ToolTip := "Holding Left+Right mouse rapid-fires both"
+vReload.ToolTip := "Reload script"
+vBowSpam.ToolTip := "Holding Left+Right mouse rapid-fires both bow attacks"
 vBowCharge.ToolTip := "Holding Right mouse rapid-fires fully charged shots"
 BowChargeDelay.ToolTip := "Enter your attack speed here"
 vBowChargeDelayText.ToolTip := "Current calculated delay for Bow Charge"
 vBowChargeDelayText.OnEvent("Click", (*) => {})
-vWeapon2.ToolTip := "Right click now toggles on/off when clicked"
+vWeapon2.ToolTip := "Right click now toggles on/off when clicked`n▣ = only running while also holding left click"
 vChargeCancel.ToolTip := "Holding Left or Right mouse rapidly attacks by charge cancelling"
 ChargeCancelDelay.ToolTip := "Set the delay for Charge Cancel (you probably don't want to change this)"
 vChargeCancelKey.ToolTip := "Select which skill is your chargeable skill (only Pala and Sorc has one)"
-vSkill1.ToolTip := "Skill 1 now toggles on/off when clicked"
-vSkill2.ToolTip := "Skill 2 now toggles on/off when clicked"
-vSkill3.ToolTip := "Skill 3 now toggles on/off when clicked"
-vReload.ToolTip := "Full restart of script"
+vSkill1.ToolTip := "Skill 1 now toggles on/off when clicked`n▣ = only running while also holding left click"
+vSkill2.ToolTip := "Skill 2 now toggles on/off when clicked`n▣ = only running while also holding left click"
+vSkill3.ToolTip := "Skill 3 now toggles on/off when clicked`n▣ = only running while also holding left click"
+vDuo1H.ToolTip := "Holding Left+Right mouse rapid-fires both weapons`n▣ = Slightly slower delay, may work better for some weapons"
+vSiggy.ToolTip := "      made poorly by`nmijamijamija @ discord"
+vSiggy.OnEvent("Click", (*) => {})
 
 ; Set initial value
 BowChargeDelay.Value := UpDown_ePos
@@ -118,30 +150,48 @@ vChargeCancel.OnEvent("Click", ChargeCancelFunction)
 vSkill1.OnEvent("Click", Skill1ToggleFunction)
 vSkill2.OnEvent("Click", Skill2ToggleFunction)
 vSkill3.OnEvent("Click", Skill3ToggleFunction)
+vDuo1H.OnEvent("Click", Duo1HFunction)
 
 ; Update delay text when BowChargeDelay value changes
 BowChargeDelay.OnEvent("Change", UpdateDelayText)
 
 ; Gui size and location
 G.Show("w190")
-; G.Move(-1590, 850)
+; G.Move(-1570, 870) ; This moves it to the 2nd monitor
 
 ; Death on Close
 G.OnEvent("Close", GuiClose)
 
-; UpDown box moves in increments
-OnMessage(0x004E, WM_NOTIFY)
+; Tooltip enabler
+OnMessage(WM_MOUSEMOVE := 0x200, On_WM_MOUSEMOVE)
+On_WM_MOUSEMOVE(wParam, lParam, msg, Hwnd) {
+    static PrevHwnd := 0, Text
+    if (Hwnd != PrevHwnd) {
+        Text := "", ToolTip()
+        CurrControl := GuiCtrlFromHwnd(Hwnd)
+        if CurrControl {
+            if !CurrControl.HasProp("ToolTip")
+                return
+            Text := CurrControl.ToolTip
+            SetTimer(DisplayToolTip, -500)
+        }
+        PrevHwnd := Hwnd
+    }
+    DisplayToolTip() {
+        ToolTip(Text)
+    }
+}
 
+; Button listeners
+OnMessage(0x004E, WM_NOTIFY)
 WM_NOTIFY(wParam, lParam, Msg, hWnd)
 {
     static UDN_DELTAPOS := 0xFFFFFD2E
     static UDM_GETBUDDY := 0x046A
-
     NMUPDOWN_NMHDR_hwndFrom := NumGet(lParam, 0, "UInt")
     NMUPDOWN_NMHDR_idFrom   := NumGet(lParam, 8, "UInt")
     NMUPDOWN_NMHDR_code     := NumGet(lParam, 16, "UInt")
     NMUPDOWN_iDelta         := NumGet(lParam, 28, "Int")
-
     if (NMUPDOWN_NMHDR_code = UDN_DELTAPOS)
     {
         try BuddyCtrl_hWnd := SendMessage(UDM_GETBUDDY, 0, 0, NMUPDOWN_NMHDR_hwndFrom)
@@ -156,7 +206,6 @@ WM_NOTIFY(wParam, lParam, Msg, hWnd)
     return false
 }
 
-; Button listeners
 ReloadFunction(ctrl, eventInfo) {
     Reload
 }
@@ -193,12 +242,12 @@ BowSpamFunction(ctrl, eventInfo) {
 Weapon2Function(ctrl, eventInfo) {
     global Weapon2Active, Weapon2Status, inProgressW2
     Weapon2Active := ctrl.Value
-    if (Weapon2Active) {
-        SetTimer(Weapon2Loop, 50)
-    } else {
-        SetTimer(Weapon2Loop, 0)
+    if (Weapon2Active == 0) {
         Weapon2Status := false
         inProgressW2 := 0
+        SetTimer(Weapon2Loop, 0)
+    } else if (Weapon2Active != 0) {
+        SetTimer(Weapon2Loop, 50)
     }
 }
 
@@ -229,33 +278,26 @@ ResetToggles() {
 }
 
 ToggleWeapon2Status() {
-    global Weapon2Status, inProgressW2
-    Weapon2Status := !Weapon2Status
-    inProgressW2 := 0
+    global Weapon2Active, Weapon2Status, inProgressW2
+    if (Weapon2Active != 0) {
+        Weapon2Status := !Weapon2Status
+        inProgressW2 := 0
+    }
 }
 
 ResetWeapon2Status() {
-    global Weapon2Status, inProgressW2, Skill1Status, Skill2Status, Skill3Status
-    Weapon2Status := 0
-    inProgressW2 := 0
-    if (Skill1Status) {
-        Send "{1 Up}"
-        Skill1Status := false
-    }
-    if (Skill2Status) {
-        Send "{2 Up}"
-        Skill2Status := false
-    }
-    if (Skill3Status) {
-        Send "{3 Up}"
-        Skill3Status := false
+    global Weapon2Active, Weapon2Status, inProgressW2
+    if (Weapon2Active == 1 && Weapon2Status) {
+        Weapon2Status := false
+        inProgressW2 := 0
+        SetTimer(Weapon2Loop, 0)
     }
 }
 
 Skill1ToggleFunction(ctrl, eventInfo) {
     global Toggle1Active
     Toggle1Active := ctrl.Value
-    if (!Toggle1Active) {
+    if (Toggle1Active) {
         Skill1Status := false
     }
 }
@@ -276,10 +318,19 @@ Skill3ToggleFunction(ctrl, eventInfo) {
     }
 }
 
+Duo1HFunction(ctrl, eventInfo) {
+    global Duo1HActive
+    Duo1HActive := ctrl.Value
+    if (Duo1HActive) {
+        SetTimer(Duo1HLoop, 50)
+    } else {
+        SetTimer(Duo1HLoop, 0)
+    }
+}
+
 ; The actual functionality
 BowChargeLoop() {
     global BowChargeActive, inProgressBow, BowChargeDelay
-
     if (BowChargeActive && WinActive("ahk_class SDL_app") && !inProgressBow && !GetKeyState("LButton", "P") && GetKeyState("RButton", "P")) {
         inProgressBow := true
         baseDelay := 450
@@ -296,24 +347,31 @@ BowChargeLoop() {
 
 BowSpamLoop() {
     global BowSpamActive
-
-    if (BowSpamActive && WinActive("ahk_class SDL_app")) {
-        if (GetKeyState("LButton", "P") && GetKeyState("RButton", "P")) {
-
-            Click "Down Right"
-            Sleep 100
-            Click "Up Right"
-            Sleep 20
-        }
+    if (BowSpamActive && WinActive("ahk_class SDL_app") && (GetKeyState("LButton", "P") && GetKeyState("RButton", "P"))) {
+        Click "Down Right"
+        Sleep 100
+        Click "Up Right"
+        Sleep 20
     }
 }
 
 Weapon2Loop() {
     global Weapon2Active, Weapon2Status, inProgressW2
-    if (Weapon2Active && Weapon2Status && WinActive("ahk_class SDL_app")) {
+    if (Weapon2Active == 1 && Weapon2Status && WinActive("ahk_class SDL_app")) {
         if (inProgressW2 == 0) {
             Click "Down Right"
-            Sleep(20)
+            Sleep 20
+            Click "Up Right"
+            inProgressW2++
+        } else if (inProgressW2 >= 3) {
+            inProgressW2 := 0
+        } else {
+            inProgressW2++
+        }
+    } else if (Weapon2Active == -1 && Weapon2Status && WinActive("ahk_class SDL_app") && GetKeyState("LButton", "P")) {
+        if (inProgressW2 == 0) {
+            Click "Down Right"
+            Sleep 20
             Click "Up Right"
             inProgressW2++
         } else if (inProgressW2 >= 3) {
@@ -328,7 +386,6 @@ Weapon2Loop() {
 
 ChargeCancelLoop() {
     global ChargeCancelActive, ChargeCancelDelay, vChargeCancelKey, inProgressChargeCancel
-
     if (ChargeCancelActive && WinActive("ahk_class SDL_app") && !inProgressChargeCancel && (GetKeyState("LButton", "P") || GetKeyState("RButton", "P"))) {
         inProgressChargeCancel := true
         selectedKey := vChargeCancelKey.Text
@@ -342,54 +399,58 @@ ChargeCancelLoop() {
 }
 
 ToggleSkill1Status() {
-    global Skill1Status
-    if (Toggle1Active && WinActive("ahk_class SDL_app") && !Skill1Status) {
-        Send "{1 Down}"
-        Skill1Status := true
+    global Toggle1Active, Skill1Status
+    if (Toggle1Active != 0 && WinActive("ahk_class SDL_app")) {
+        Skill1Status := !Skill1Status
+        if (Skill1Status && Toggle1Active == 1) {
+            Send "{1 Down}"
         } else {
-        Send "{1 Up}"
-        Skill1Status := false
+            Send "{1 Up}"
+        }
     }
 }
 
 ToggleSkill2Status() {
-    global Skill2Status
-    if (Toggle2Active && WinActive("ahk_class SDL_app") && !Skill2Status) {
-        Send "{2 Down}"
-        Skill2Status := true
+    global Toggle2Active, Skill2Status
+    if (Toggle2Active != 0 && WinActive("ahk_class SDL_app")) {
+        Skill2Status := !Skill2Status
+        if (Skill2Status && Toggle2Active == 1) {
+            Send "{2 Down}"
         } else {
-        Send "{2 Up}"
-        Skill2Status := false
+            Send "{2 Up}"
+        }
     }
 }
 
 ToggleSkill3Status() {
-    global Skill3Status
-    if (Toggle3Active && WinActive("ahk_class SDL_app") && !Skill3Status) {
-        Send "{3 Down}"
-        Skill3Status := true
+    global Toggle3Active, Skill3Status
+    if (Toggle3Active != 0 && WinActive("ahk_class SDL_app")) {
+        Skill3Status := !Skill3Status
+        if (Skill3Status && Toggle3Active == 1) {
+            Send "{3 Down}"
         } else {
-        Send "{3 Up}"
-        Skill3Status := false
+            Send "{3 Up}"
+        }
     }
 }
 
-OnMessage(WM_MOUSEMOVE := 0x200, On_WM_MOUSEMOVE)
-On_WM_MOUSEMOVE(wParam, lParam, msg, Hwnd) {
-    static PrevHwnd := 0, Text
-    if (Hwnd != PrevHwnd) {
-        Text := "", ToolTip()
-        CurrControl := GuiCtrlFromHwnd(Hwnd)
-        if CurrControl {
-            if !CurrControl.HasProp("ToolTip")
-                return ; No tooltip for this control.
-            Text := CurrControl.ToolTip
-            SetTimer(DisplayToolTip, -500)
+Duo1HLoop() {
+    global Duo1HActive, inProgressDuo1H
+    if (Duo1HActive !=0 && WinActive("ahk_class SDL_app") && !inProgressDuo1H && (GetKeyState("LButton", "P") && GetKeyState("RButton", "P"))) {
+        if (Duo1HActive == 1) {
+            DuoSleep := 50
+        } else {
+            DuoSleep := 75
         }
-        PrevHwnd := Hwnd
-    }
-
-    DisplayToolTip() {
-        ToolTip(Text)
+        inProgressDuo1H := true
+        Click "Down Right"
+        Sleep 50
+        Click "Up Right"
+        Sleep DuoSleep
+        Click "Down Left"
+        Sleep 50
+        Click "Up Left"
+        Sleep DuoSleep
+        inProgressDuo1H := false
     }
 }
