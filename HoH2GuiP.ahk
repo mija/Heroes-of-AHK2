@@ -174,11 +174,15 @@ On_WM_MOUSEMOVE(wParam, lParam, msg, Hwnd) {
                 return
             Text := CurrControl.ToolTip
             SetTimer(DisplayToolTip, -500)
+            SetTimer(ClearTooltip, -5000)
         }
         PrevHwnd := Hwnd
     }
     DisplayToolTip() {
         ToolTip(Text)
+    }
+    ClearTooltip() {
+    ToolTip("")
     }
 }
 
@@ -224,8 +228,16 @@ BowChargeFunction(ctrl, eventInfo) {
     BowChargeActive := ctrl.Value
     if (BowChargeActive) {
         SetTimer(BowChargeLoop, 50)
+        vWeapon2.Enabled := false
+        vChargeCancel.Enabled := false
+        vDuo1H.Enabled := false
     } else {
         SetTimer(BowChargeLoop, 0)
+        if (!BowSpamActive) {
+            vWeapon2.Enabled := true
+            vChargeCancel.Enabled := true
+            vDuo1H.Enabled := true
+        }
     }
 }
 
@@ -234,8 +246,16 @@ BowSpamFunction(ctrl, eventInfo) {
     BowSpamActive := ctrl.Value
     if (BowSpamActive) {
         SetTimer(BowSpamLoop, 50)
+        vWeapon2.Enabled := false
+        vChargeCancel.Enabled := false
+        vDuo1H.Enabled := false
     } else {
         SetTimer(BowSpamLoop, 0)
+        if (!BowChargeActive) {
+            vWeapon2.Enabled := true
+            vChargeCancel.Enabled := true
+            vDuo1H.Enabled := true
+        }
     }
 }
 
@@ -246,8 +266,16 @@ Weapon2Function(ctrl, eventInfo) {
         Weapon2Status := false
         inProgressW2 := 0
         SetTimer(Weapon2Loop, 0)
+	if (!ChargeCancelActive) {
+            vBowSpam.Enabled := true
+            vBowCharge.Enabled := true
+            vDuo1H.Enabled := true
+        }
     } else if (Weapon2Active != 0) {
         SetTimer(Weapon2Loop, 50)
+            vBowSpam.Enabled := false
+            vBowCharge.Enabled := false
+            vDuo1H.Enabled := false
     }
 }
 
@@ -256,8 +284,16 @@ ChargeCancelFunction(ctrl, eventInfo) {
     ChargeCancelActive := ctrl.Value
     if (ChargeCancelActive) {
         SetTimer(ChargeCancelLoop, 50)
+        vBowSpam.Enabled := false
+        vBowCharge.Enabled := false
+        vDuo1H.Enabled := false
     } else {
         SetTimer(ChargeCancelLoop, 0)
+        if (Weapon2Active == 0) {
+            vBowSpam.Enabled := true
+            vBowCharge.Enabled := true
+            vDuo1H.Enabled := true
+        }
     }
 }
 
@@ -323,8 +359,16 @@ Duo1HFunction(ctrl, eventInfo) {
     Duo1HActive := ctrl.Value
     if (Duo1HActive) {
         SetTimer(Duo1HLoop, 50)
+        vBowSpam.Enabled := false
+        vBowCharge.Enabled := false
+        vWeapon2.Enabled := false
+        vChargeCancel.Enabled := false
     } else {
         SetTimer(Duo1HLoop, 0)
+        vBowSpam.Enabled := true
+        vBowCharge.Enabled := true
+        vWeapon2.Enabled := true
+        vChargeCancel.Enabled := true
     }
 }
 
@@ -385,16 +429,20 @@ Weapon2Loop() {
 }
 
 ChargeCancelLoop() {
-    global ChargeCancelActive, ChargeCancelDelay, vChargeCancelKey, inProgressChargeCancel
+    global ChargeCancelActive, ChargeCancelDelay, vChargeCancelKey, inProgressChargeCancel, Weapon2Active
     if (ChargeCancelActive && WinActive("ahk_class SDL_app") && !inProgressChargeCancel && (GetKeyState("LButton", "P") || GetKeyState("RButton", "P"))) {
-        inProgressChargeCancel := true
-        selectedKey := vChargeCancelKey.Text
-        chargeSleep := ChargeCancelDelay.Value
-        Send "{" selectedKey " Down}"
-        Sleep 100
-        Send "{" selectedKey " Up}"
-        Sleep chargeSleep
-        inProgressChargeCancel := false
+        if (GetKeyState("RButton", "P") && !GetKeyState("LButton", "P") && Weapon2Active != 0) {
+	return
+        } else {
+            inProgressChargeCancel := true
+            selectedKey := vChargeCancelKey.Text
+            chargeSleep := ChargeCancelDelay.Value
+            Send "{" selectedKey " Down}"
+            Sleep 100
+            Send "{" selectedKey " Up}"
+            Sleep chargeSleep
+            inProgressChargeCancel := false
+        }
     }
 }
 
