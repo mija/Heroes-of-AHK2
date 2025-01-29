@@ -10,7 +10,7 @@ GuiClose(GuiObj) {
 ; UpDown properties
 UpDown_fIncrement := 5
 UpDown_ePos       := 100
-UpDown_fPos       := 110
+UpDown_fPos       := 100
 
 ; Keybinds
 #HotIf (Weapon2Active != 0 && WinActive("ahk_class SDL_app"))
@@ -266,16 +266,16 @@ Weapon2Function(ctrl, eventInfo) {
         Weapon2Status := false
         inProgressW2 := 0
         SetTimer(Weapon2Loop, 0)
+        vDuo1H.Enabled := true
 	if (!ChargeCancelActive) {
             vBowSpam.Enabled := true
             vBowCharge.Enabled := true
-            vDuo1H.Enabled := true
         }
     } else if (Weapon2Active != 0) {
-        SetTimer(Weapon2Loop, 50)
-            vBowSpam.Enabled := false
-            vBowCharge.Enabled := false
-            vDuo1H.Enabled := false
+        SetTimer(Weapon2Loop, 50)     
+           vBowSpam.Enabled := false
+           vBowCharge.Enabled := false
+           vDuo1H.Enabled := false
     }
 }
 
@@ -286,13 +286,11 @@ ChargeCancelFunction(ctrl, eventInfo) {
         SetTimer(ChargeCancelLoop, 50)
         vBowSpam.Enabled := false
         vBowCharge.Enabled := false
-        vDuo1H.Enabled := false
     } else {
         SetTimer(ChargeCancelLoop, 0)
         if (Weapon2Active == 0) {
             vBowSpam.Enabled := true
             vBowCharge.Enabled := true
-            vDuo1H.Enabled := true
         }
     }
 }
@@ -362,13 +360,13 @@ Duo1HFunction(ctrl, eventInfo) {
         vBowSpam.Enabled := false
         vBowCharge.Enabled := false
         vWeapon2.Enabled := false
-        vChargeCancel.Enabled := false
     } else {
         SetTimer(Duo1HLoop, 0)
-        vBowSpam.Enabled := true
-        vBowCharge.Enabled := true
+        if (ChargeCancelActive == 0) {
+            vBowSpam.Enabled := true
+            vBowCharge.Enabled := true
+        }        
         vWeapon2.Enabled := true
-        vChargeCancel.Enabled := true
     }
 }
 
@@ -431,7 +429,7 @@ Weapon2Loop() {
 ChargeCancelLoop() {
     global ChargeCancelActive, ChargeCancelDelay, vChargeCancelKey, inProgressChargeCancel, Weapon2Active
     if (ChargeCancelActive && WinActive("ahk_class SDL_app") && !inProgressChargeCancel && (GetKeyState("LButton", "P") || GetKeyState("RButton", "P"))) {
-        if (GetKeyState("RButton", "P") && !GetKeyState("LButton", "P") && Weapon2Active != 0) {
+        if ((GetKeyState("RButton", "P") && !GetKeyState("LButton", "P") && Weapon2Active != 0) || (GetKeyState("RButton", "P") && GetKeyState("LButton", "P") && Duo1HActive != 0)) {
 	return
         } else {
             inProgressChargeCancel := true
@@ -492,11 +490,11 @@ Duo1HLoop() {
         }
         inProgressDuo1H := true
         Click "Down Right"
-        Sleep 50
+        Sleep 47
         Click "Up Right"
         Sleep DuoSleep
         Click "Down Left"
-        Sleep 50
+        Sleep 47
         Click "Up Left"
         Sleep DuoSleep
         inProgressDuo1H := false
