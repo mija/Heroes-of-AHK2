@@ -229,13 +229,11 @@ BowChargeFunction(ctrl, eventInfo) {
     if (BowChargeActive) {
         SetTimer(BowChargeLoop, 50)
         vWeapon2.Enabled := false
-        vChargeCancel.Enabled := false
         vDuo1H.Enabled := false
     } else {
         SetTimer(BowChargeLoop, 0)
-        if (!BowSpamActive) {
+	if(!BowSpamActive) {
             vWeapon2.Enabled := true
-            vChargeCancel.Enabled := true
             vDuo1H.Enabled := true
         }
     }
@@ -255,6 +253,8 @@ BowSpamFunction(ctrl, eventInfo) {
             vWeapon2.Enabled := true
             vChargeCancel.Enabled := true
             vDuo1H.Enabled := true
+	} else if (BowChargeActive) {
+            vChargeCancel.Enabled := true
         }
     }
 }
@@ -267,9 +267,9 @@ Weapon2Function(ctrl, eventInfo) {
         inProgressW2 := 0
         SetTimer(Weapon2Loop, 0)
         vDuo1H.Enabled := true
+        vBowCharge.Enabled := true
 	if (!ChargeCancelActive) {
             vBowSpam.Enabled := true
-            vBowCharge.Enabled := true
         }
     } else if (Weapon2Active != 0) {
         SetTimer(Weapon2Loop, 50)     
@@ -285,12 +285,10 @@ ChargeCancelFunction(ctrl, eventInfo) {
     if (ChargeCancelActive) {
         SetTimer(ChargeCancelLoop, 50)
         vBowSpam.Enabled := false
-        vBowCharge.Enabled := false
     } else {
         SetTimer(ChargeCancelLoop, 0)
         if (Weapon2Active == 0) {
             vBowSpam.Enabled := true
-            vBowCharge.Enabled := true
         }
     }
 }
@@ -364,9 +362,9 @@ Duo1HFunction(ctrl, eventInfo) {
         SetTimer(Duo1HLoop, 0)
         if (ChargeCancelActive == 0) {
             vBowSpam.Enabled := true
-            vBowCharge.Enabled := true
         }        
         vWeapon2.Enabled := true
+        vBowCharge.Enabled := true
     }
 }
 
@@ -429,7 +427,7 @@ Weapon2Loop() {
 ChargeCancelLoop() {
     global ChargeCancelActive, ChargeCancelDelay, vChargeCancelKey, inProgressChargeCancel, Weapon2Active
     if (ChargeCancelActive && WinActive("ahk_class SDL_app") && !inProgressChargeCancel && (GetKeyState("LButton", "P") || GetKeyState("RButton", "P"))) {
-        if ((GetKeyState("RButton", "P") && !GetKeyState("LButton", "P") && Weapon2Active != 0) || (GetKeyState("RButton", "P") && GetKeyState("LButton", "P") && Duo1HActive != 0)) {
+        if ((GetKeyState("RButton", "P") && !GetKeyState("LButton", "P") && Weapon2Active != 0) || (GetKeyState("RButton", "P") && GetKeyState("LButton", "P") && Duo1HActive != 0) || (GetKeyState("RButton", "P") && BowChargeActive)) {
 	return
         } else {
             inProgressChargeCancel := true
